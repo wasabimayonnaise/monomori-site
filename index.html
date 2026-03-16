@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Monomori – Your Collection OS</title>
     <meta name="description" content="Monomori (物守り) – Guardian of Things. A comprehensive collection management app for serious collectors.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,6 +30,14 @@
             --accent-gold: #ffe4b5;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Global image quality fix */
+        img {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimizeQuality;
+            -ms-interpolation-mode: bicubic;
+        }
+        
         html { overflow: hidden; height: 100%; }
         body { 
             font-family: 'Outfit', sans-serif; 
