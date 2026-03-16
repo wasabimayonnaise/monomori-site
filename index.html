@@ -211,17 +211,23 @@
         .story-description { font-size: 1.05rem; color: var(--text-secondary); line-height: 1.7; margin-top: 1.5rem; }
         .story-phones { display: flex; gap: 30px; justify-content: center; align-items: center; }
         .phone-medium { 
-            height: min(70vh, 520px);
-            width: calc(min(70vh, 520px) * 0.45);
+            height: min(75vh, 580px);
+            width: calc(min(75vh, 580px) * 0.45);
             background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
             border-radius: 36px; padding: 6px; 
-            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); 
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+            will-change: transform;
+            backface-visibility: hidden;
         }
         .phone-medium:nth-child(1) { transform: rotate(-4deg) translateY(20px); }
         .phone-medium:nth-child(2) { transform: rotate(3deg) translateY(-10px); z-index: 2; }
         .phone-medium .phone-screen { border-radius: 30px; }
         .phone-medium .screenshot-placeholder { border-radius: 0; }
-        .phone-medium .phone-screen img { border-radius: 0; }
+        .phone-medium .phone-screen img { 
+            border-radius: 0;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
         
         /* CATEGORIES */
         .panel-categories .panel-content { text-align: center; height: auto; }
@@ -240,17 +246,23 @@
         .customize-visual { display: flex; justify-content: center; }
         .customize-phones { display: flex; position: relative; gap: 30px; }
         .phone-small { 
-            height: min(65vh, 480px);
-            width: calc(min(65vh, 480px) * 0.45);
+            height: min(70vh, 540px);
+            width: calc(min(70vh, 540px) * 0.45);
             background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
             border-radius: 34px; padding: 6px; 
-            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); 
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+            will-change: transform;
+            backface-visibility: hidden;
         }
         .phone-small:nth-child(1) { transform: rotate(-6deg) translateX(20px); z-index: 1; }
         .phone-small:nth-child(2) { transform: rotate(4deg) translateX(-20px); z-index: 2; }
         .phone-small .phone-screen { border-radius: 28px; }
         .phone-small .screenshot-placeholder { border-radius: 0; }
-        .phone-small .phone-screen img { border-radius: 0; }
+        .phone-small .phone-screen img { 
+            border-radius: 0;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
         
         /* FEATURES - 3D Carousel with tilt */
         .panel-features .panel-content { 
@@ -506,13 +518,15 @@
         .panel-design .panel-content { display: grid; grid-template-columns: 1.3fr 1fr; gap: 60px; align-items: center; height: auto; }
         .theme-showcase { display: flex; gap: 28px; justify-content: center; align-items: center; }
         .theme-phone { 
-            height: min(55vh, 420px);
-            width: calc(min(55vh, 420px) * 0.45);
+            height: min(62vh, 500px);
+            width: calc(min(62vh, 500px) * 0.45);
             background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
             border-radius: 30px; padding: 5px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
             transition: transform 0.3s ease;
             position: relative;
+            will-change: transform;
+            backface-visibility: hidden;
         }
         .theme-phone:hover { transform: scale(1.03); }
         .theme-phone:nth-child(1) { transform: rotate(-4deg); }
@@ -520,7 +534,11 @@
         .theme-phone:nth-child(3) { transform: rotate(4deg); }
         .theme-phone .phone-screen { border-radius: 26px; }
         .theme-phone .screenshot-placeholder { border-radius: 0; font-size: 0.6rem; }
-        .theme-phone .phone-screen img { border-radius: 0; }
+        .theme-phone .phone-screen img { 
+            border-radius: 0;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
         .theme-label { 
             position: absolute; bottom: -32px; left: 50%; transform: translateX(-50%); 
             font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;
