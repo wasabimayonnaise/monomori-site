@@ -173,6 +173,9 @@
             height: 100%;
             object-fit: cover;
             border-radius: 0;
+            /* Cross-browser image quality */
+            image-rendering: auto;
+            -ms-interpolation-mode: bicubic;
         }
         .screenshot-placeholder { 
             width: 100%; height: 100%; 
@@ -325,9 +328,6 @@
             padding: 6px;
             box-shadow: 0 25px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1);
             backface-visibility: hidden;
-            /* Force high quality rendering */
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
         }
         
         .carousel-phone-front .phone-screen {
@@ -336,9 +336,6 @@
             border-radius: 30px;
             overflow: hidden;
             background: var(--gradient-start);
-            /* Force crisp image rendering */
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
         }
         
         .carousel-phone-front .phone-screen img {
@@ -346,10 +343,9 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            /* Prevent blurry scaling */
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
+            /* Cross-browser image quality */
             image-rendering: auto;
+            -ms-interpolation-mode: bicubic;
         }
         
         .carousel-placeholder {
