@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monomori – Your Collection OS</title>
+    <meta name="description" content="Monomori (物守り) – Guardian of Things. A comprehensive collection management app for serious collectors.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #9C27B0;
+            --primary-container: #6A1B9A;
+            --secondary: #FF59E4;
+            --on-secondary: #1A0033;
+            --tertiary: #44C0FF;
+            --background: #1A0033;
+            --surface: #2D1B4E;
+            --gradient-start: #1A0033;
+            --gradient-end: #0A001A;
+            --card-glass-tint: rgba(106, 27, 154, 0.3);
+            --glass-bg: rgba(106, 27, 154, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-tertiary: rgba(255, 255, 255, 0.5);
+            --accent-gold: #ffe4b5;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { overflow: hidden; height: 100%; }
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background: var(--gradient-start); 
+            color: var(--text-primary);
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .wrapper {
+            height: 100vh;
+            width: 100vw;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            scroll-behavior: smooth;
+            scroll-snap-type: x proximity;
+        }
+        .wrapper::-webkit-scrollbar { display: none; }
+        
+        .horizontal-scroll { 
+            display: flex; 
+            height: 100vh; 
+            width: max-content; 
+        }
+        
+        .panel {
+            width: 100vw; 
+            height: 100vh; 
+            flex-shrink: 0;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            padding: 40px 60px;
+            background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            position: relative;
+            overflow: hidden;
+            scroll-snap-align: start;
+        }
+        
+        .noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.05; z-index: 1; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at 50% 35%, transparent 0%, transparent 40%, rgba(0,0,0,0.5) 100%);
+            z-index: 2; pointer-events: none;
+        }
+        .dust-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: hidden; }
+        .dust-particle {
+            position: absolute; background: var(--accent-gold); border-radius: 50%; opacity: 0;
+            animation: dust-float linear infinite, dust-flash ease-in-out infinite;
+        }
+        @keyframes dust-float { 0% { transform: translateY(110vh) translateX(0); } 100% { transform: translateY(-10vh) translateX(var(--drift)); } }
+        @keyframes dust-flash { 0%, 100% { opacity: 0; } 35%, 65% { opacity: var(--max-opacity); } }
+        
+        .panel-content { 
+            position: relative; 
+            z-index: 10; 
+            width: 100%; 
+            max-width: 1300px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0; 
+            transform: translateX(60px);
+            filter: blur(6px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out, filter 0.5s ease-out;
+        }
+        
+        .panel.in-view .panel-content { 
+            opacity: 1; 
+            transform: translateX(0);
+            filter: blur(0);
+        }
+        
+        .panel.passed .panel-content {
+            opacity: 0;
+            transform: translateX(-60px);
+            filter: blur(6px);
+        }
+        
+        .glass-card {
+            background: linear-gradient(135deg, var(--glass-bg) 0%, rgba(106, 27, 154, 0.08) 100%);
+            border: 1px solid var(--glass-border); border-radius: 20px;
+            position: relative; overflow: hidden;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .glass-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(180deg, var(--glass-highlight) 0%, transparent 100%);
+            pointer-events: none; border-radius: 20px 20px 0 0;
+        }
+        
+        .icon-placeholder {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 16px rgba(156, 39, 176, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .icon-placeholder svg { width: 32px; height: 32px; }
+        .icon-placeholder.pink {
+            background: linear-gradient(135deg, var(--secondary) 0%, #E91E63 100%);
+            box-shadow: 0 6px 20px rgba(255, 89, 228, 0.25);
+        }
+        
+        .jp-title { font-family: 'Noto Sans JP', sans-serif; font-weight: 900; font-size: clamp(3.5rem, 8vw, 8rem); letter-spacing: -0.02em; text-shadow: 2px 4px 8px rgba(0,0,0,0.5), 0 0 80px rgba(156, 39, 176, 0.5); line-height: 1.1; }
+        .subtitle { font-size: clamp(0.9rem, 1.5vw, 1.3rem); font-weight: 400; color: var(--text-secondary); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.5rem; }
+        .tagline { font-size: clamp(1.3rem, 2.5vw, 2.2rem); font-weight: 300; margin-top: 1.5rem; }
+        .tagline span { color: var(--secondary); font-weight: 500; }
+        .section-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.02em; line-height: 1.2; }
+        .section-subtitle { font-size: clamp(0.9rem, 1.3vw, 1.1rem); color: var(--text-secondary); max-width: 450px; line-height: 1.6; }
+        
+        /* PHONE FRAMES & SCREENSHOTS - 9:20 aspect ratio (1080x2400) */
+        .phone-frame { 
+            height: min(80vh, 600px);
+            width: calc(min(80vh, 600px) * 0.45); /* 9:20 ratio */
+            background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
+            border-radius: 40px; padding: 8px; 
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.15); 
+            position: relative; z-index: 2; 
+        }
+        .phone-screen { 
+            width: 100%; height: 100%; 
+            background: var(--gradient-start); 
+            border-radius: 32px; 
+            overflow: hidden; 
+        }
+        .phone-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+        .screenshot-placeholder { 
+            width: 100%; height: 100%; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%); 
+            color: var(--text-tertiary); font-size: 0.75rem; text-align: center; 
+            padding: 16px; border: 2px dashed var(--glass-border); border-radius: 0; 
+        }
+        .screenshot-placeholder .label { font-weight: 600; color: var(--secondary); margin-bottom: 0.4rem; font-size: 0.7rem; }
+        .screenshot-placeholder .filename { font-family: monospace; font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.5rem; opacity: 0.7; }
+        .phone-glow { position: absolute; width: 450px; height: 450px; background: radial-gradient(circle, rgba(156, 39, 176, 0.4) 0%, transparent 70%); z-index: 1; filter: blur(60px); }
+        
+        /* HERO */
+        .panel-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; height: auto; }
+        .hero-cta { display: inline-flex; align-items: center; gap: 10px; margin-top: 2rem; padding: 14px 24px; background: var(--secondary); color: var(--on-secondary); font-weight: 600; font-size: 1rem; border-radius: 14px; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 8px 32px rgba(255, 89, 228, 0.3); }
+        .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(255, 89, 228, 0.4); }
+        .hero-cta svg { width: 22px; height: 22px; }
+        .hero-phone { position: relative; display: flex; justify-content: center; align-items: center; }
+        
+        /* STORY - Now with phone mockups */
+        .panel-story .panel-content { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; height: auto; }
+        .story-text { max-width: 500px; }
+        .story-description { font-size: 1.05rem; color: var(--text-secondary); line-height: 1.7; margin-top: 1.5rem; }
+        .story-phones { display: flex; gap: 30px; justify-content: center; align-items: center; }
+        .phone-medium { 
+            height: min(70vh, 520px);
+            width: calc(min(70vh, 520px) * 0.45);
+            background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
+            border-radius: 36px; padding: 6px; 
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); 
+        }
+        .phone-medium:nth-child(1) { transform: rotate(-4deg) translateY(20px); }
+        .phone-medium:nth-child(2) { transform: rotate(3deg) translateY(-10px); z-index: 2; }
+        .phone-medium .phone-screen { border-radius: 30px; }
+        .phone-medium .screenshot-placeholder { border-radius: 0; }
+        .phone-medium .phone-screen img { border-radius: 0; }
+        
+        /* CATEGORIES */
+        .panel-categories .panel-content { text-align: center; height: auto; }
+        .categories-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 2rem; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .category-pill { padding: 8px 16px; border-radius: 100px; font-size: 0.85rem; font-weight: 500; transition: all 0.3s ease; }
+        .category-pill:hover { transform: scale(1.05); background: var(--card-glass-tint); }
+        .category-count { display: block; margin-top: 2rem; font-size: 0.95rem; color: var(--text-tertiary); }
+        .category-count span { color: var(--secondary); font-weight: 600; }
+        
+        /* CUSTOMIZE */
+        .panel-customize .panel-content { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; height: auto; }
+        .customize-features { display: flex; flex-direction: column; gap: 20px; margin-top: 1.5rem; }
+        .customize-feature { display: flex; gap: 14px; align-items: flex-start; }
+        .feature-content h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+        .feature-content p { color: var(--text-secondary); line-height: 1.5; font-size: 0.85rem; }
+        .customize-visual { display: flex; justify-content: center; }
+        .customize-phones { display: flex; position: relative; gap: 30px; }
+        .phone-small { 
+            height: min(65vh, 480px);
+            width: calc(min(65vh, 480px) * 0.45);
+            background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
+            border-radius: 34px; padding: 6px; 
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); 
+        }
+        .phone-small:nth-child(1) { transform: rotate(-6deg) translateX(20px); z-index: 1; }
+        .phone-small:nth-child(2) { transform: rotate(4deg) translateX(-20px); z-index: 2; }
+        .phone-small .phone-screen { border-radius: 28px; }
+        .phone-small .screenshot-placeholder { border-radius: 0; }
+        .phone-small .phone-screen img { border-radius: 0; }
+        
+        /* FEATURES - 3D Carousel with tilt */
+        .panel-features .panel-content { 
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 100%;
+            width: 100%;
+            position: relative;
+        }
+        .features-header { 
+            text-align: center; 
+            margin-bottom: 0;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            z-index: 20;
+            /* Glassmorphic background so text is readable over phones */
+            width: fit-content;
+            background: rgba(26, 0, 51, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 12px 24px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .features-header .section-title { margin-bottom: 0.3rem; }
+        .features-header .section-subtitle { margin: 0 auto; white-space: nowrap; }
+        
+        .carousel-container {
+            perspective: 1600px;
+            width: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            /* Hint browser to optimize */
+            will-change: transform;
+        }
+        
+        .carousel-3d {
+            position: relative;
+            width: 270px;
+            height: 600px; /* 9:20 ratio */
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Tilt the entire carousel like the sketch */
+            transform: rotateX(-8deg) rotateY(0deg);
+            will-change: transform;
+        }
+        
+        .carousel-item {
+            position: absolute;
+            width: 270px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        
+        .carousel-item .carousel-phone {
+            width: 270px;
+            height: 600px; /* 9:20 ratio for 1080x2400 */
+            position: relative;
+            transform-style: preserve-3d;
+        }
+        
+        /* Front of phone */
+        .carousel-phone-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%);
+            border-radius: 36px;
+            padding: 6px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.1);
+            backface-visibility: hidden;
+            /* Force high quality rendering */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
+        .carousel-phone-front .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            overflow: hidden;
+            background: var(--gradient-start);
+            /* Force crisp image rendering */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
+        .carousel-phone-front .phone-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            /* Prevent blurry scaling */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            image-rendering: auto;
+        }
+        
+        .carousel-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-container) 0%, var(--gradient-end) 100%);
+            color: var(--text-tertiary);
+            text-align: center;
+            gap: 8px;
+            border-radius: 30px;
+        }
+        
+        .carousel-placeholder span {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            opacity: 0.6;
+        }
+        
+        .carousel-placeholder code {
+            font-size: 0.65rem;
+            color: var(--secondary);
+            opacity: 0.8;
+        }
+        
+        /* Back of phone - Pixel style */
+        .carousel-phone-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-radius: 36px;
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        
+        /* Camera bar - Pixel style */
+        .phone-camera-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%);
+            border-radius: 36px 36px 0 0;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 14px;
+        }
+        
+        .camera-lens {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+        }
+        
+        .camera-lens::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #4a4a6a 0%, #1a1a2a 60%, #000 100%);
+        }
+        
+        .camera-lens.large {
+            width: 42px;
+            height: 42px;
+        }
+        
+        .camera-lens.large::after {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .camera-flash {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffeecc 0%, #aa9977 100%);
+            box-shadow: 0 0 8px rgba(255, 238, 204, 0.3);
+        }
+        
+        /* Subtle logo area on back */
+        .phone-back-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: rgba(255,255,255,0.06);
+            font-weight: 300;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Position each item in a circle - larger radius for bigger phones */
+        .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(420px); }
+        .carousel-item:nth-child(2) { transform: rotateY(60deg) translateZ(420px); }
+        .carousel-item:nth-child(3) { transform: rotateY(120deg) translateZ(420px); }
+        .carousel-item:nth-child(4) { transform: rotateY(180deg) translateZ(420px); }
+        .carousel-item:nth-child(5) { transform: rotateY(240deg) translateZ(420px); }
+        .carousel-item:nth-child(6) { transform: rotateY(300deg) translateZ(420px); }
+        
+        .feature-info {
+            position: relative;
+            z-index: 20;
+            text-align: center;
+            width: fit-content;
+            padding: 12px 24px 14px;
+            margin-top: auto;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 24px;
+            /* Glassmorphic effect - very transparent */
+            background: rgba(26, 0, 51, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        .feature-info h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: var(--text-primary);
+        }
+        .feature-info p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            max-width: 380px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+        
+        /* DESIGN */
+        .panel-design .panel-content { display: grid; grid-template-columns: 1.3fr 1fr; gap: 60px; align-items: center; height: auto; }
+        .theme-showcase { display: flex; gap: 28px; justify-content: center; align-items: center; }
+        .theme-phone { 
+            height: min(55vh, 420px);
+            width: calc(min(55vh, 420px) * 0.45);
+            background: linear-gradient(145deg, #2D1B4E 0%, #1A0033 100%); 
+            border-radius: 30px; padding: 5px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        .theme-phone:hover { transform: scale(1.03); }
+        .theme-phone:nth-child(1) { transform: rotate(-4deg); }
+        .theme-phone:nth-child(2) { transform: scale(1.1); z-index: 2; }
+        .theme-phone:nth-child(3) { transform: rotate(4deg); }
+        .theme-phone .phone-screen { border-radius: 26px; }
+        .theme-phone .screenshot-placeholder { border-radius: 0; font-size: 0.6rem; }
+        .theme-phone .phone-screen img { border-radius: 0; }
+        .theme-label { 
+            position: absolute; bottom: -32px; left: 50%; transform: translateX(-50%); 
+            font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;
+        }
+        .design-text { display: flex; flex-direction: column; gap: 16px; }
+        .design-features { margin-top: 1.25rem; display: flex; flex-direction: column; gap: 12px; }
+        .design-feature { display: flex; gap: 12px; align-items: flex-start; }
+        .design-feature-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--secondary); flex-shrink: 0; margin-top: 6px; }
+        .design-feature p { color: var(--text-secondary); line-height: 1.45; font-size: 0.9rem; }
+        .design-feature strong { color: var(--text-primary); }
+        
+        /* CTA */
+        .panel-cta { text-align: center; }
+        .panel-cta .panel-content { max-width: 650px; height: auto; }
+        .cta-title { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700; margin-bottom: 1rem; letter-spacing: -0.02em; line-height: 1.15; }
+        .cta-subtitle { font-size: 1rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6; }
+        .play-badge-placeholder { display: inline-flex; align-items: center; gap: 12px; padding: 12px 24px; background: #000; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); color: white; text-decoration: none; transition: all 0.3s ease; }
+        .play-badge-placeholder:hover { background: #111; border-color: var(--secondary); transform: scale(1.03); }
+        .play-badge-placeholder svg { width: 32px; height: 32px; }
+        .play-badge-placeholder .text { text-align: left; }
+        .play-badge-placeholder .text-small { font-size: 0.65rem; opacity: 0.8; }
+        .play-badge-placeholder .text-large { font-size: 1.05rem; font-weight: 600; }
+        .cta-footer { margin-top: 2.5rem; color: var(--text-tertiary); font-size: 0.85rem; }
+        
+        /* NAV */
+        .nav-dots { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; padding: 8px 14px; background: rgba(0,0,0,0.5); border-radius: 100px; backdrop-filter: blur(10px); border: 1px solid var(--glass-border); }
+        .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-tertiary); cursor: pointer; transition: all 0.3s ease; border: none; padding: 0; position: relative; overflow: hidden; }
+        .nav-dot:hover { background: var(--text-secondary); }
+        .nav-dot.active { background: var(--secondary); width: 24px; border-radius: 6px; }
+        /* Features dot with progress fill */
+        .nav-dot.has-progress { width: 40px; border-radius: 6px; background: var(--text-tertiary); }
+        .nav-dot.has-progress.active { background: var(--text-tertiary); }
+        .nav-dot-progress { position: absolute; left: 0; top: 0; height: 100%; background: var(--secondary); border-radius: 6px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); width: 0%; }
+        .scroll-hint { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-tertiary); font-size: 0.7rem; z-index: 100; writing-mode: vertical-rl; letter-spacing: 0.1em; }
+        .scroll-hint::after { content: ''; width: 1px; height: 40px; background: linear-gradient(180deg, var(--secondary) 0%, transparent 100%); animation: scroll-pulse 2s ease-in-out infinite; }
+        @keyframes scroll-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        
+        /* ==================== MOBILE STYLES ==================== */
+        @media (max-width: 1100px) {
+            .panel-hero, .panel-story .panel-content, .panel-customize .panel-content, .panel-design .panel-content { grid-template-columns: 1fr; text-align: center; }
+            .phone-frame { height: min(70vh, 550px); width: calc(min(70vh, 550px) * 0.45); }
+            .story-text { max-width: 100%; }
+            .story-phones { margin-top: 2rem; }
+            .section-subtitle { margin-left: auto; margin-right: auto; }
+            .customize-features, .design-features { text-align: left; }
+            .theme-showcase { flex-wrap: wrap; }
+            /* Carousel adjustments */
+            .carousel-3d { width: 240px; height: 533px; }
+            .carousel-item { width: 240px; height: 533px; }
+            .carousel-item .carousel-phone { width: 240px; height: 533px; }
+            .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(380px); }
+            .carousel-item:nth-child(2) { transform: rotateY(60deg) translateZ(380px); }
+            .carousel-item:nth-child(3) { transform: rotateY(120deg) translateZ(380px); }
+            .carousel-item:nth-child(4) { transform: rotateY(180deg) translateZ(380px); }
+            .carousel-item:nth-child(5) { transform: rotateY(240deg) translateZ(380px); }
+            .carousel-item:nth-child(6) { transform: rotateY(300deg) translateZ(380px); }
+        }
+        
+        @media (max-width: 768px) {
+            html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
+            .wrapper { height: auto; overflow-x: hidden; overflow-y: auto; scroll-snap-type: y proximity; }
+            .horizontal-scroll { flex-direction: column; width: 100%; height: auto; }
+            .panel { width: 100%; min-height: 100vh; min-height: 100dvh; height: auto; padding: 60px 24px; scroll-snap-align: start; }
+            .nav-dots, .scroll-hint { display: none; }
+            
+            .panel-hero { gap: 24px; }
+            .hero-phone { margin-bottom: 16px; }
+            .phone-frame { height: min(60vh, 450px); width: calc(min(60vh, 450px) * 0.45); border-radius: 32px; }
+            .phone-screen { border-radius: 28px; }
+            .phone-screen img { border-radius: 0; }
+            
+            .story-phones { flex-direction: column; gap: 24px; }
+            .phone-medium { height: min(50vh, 380px); width: calc(min(50vh, 380px) * 0.45); }
+            .phone-medium:nth-child(1), .phone-medium:nth-child(2) { transform: none; }
+            
+            .categories-grid { gap: 8px; }
+            .category-pill { padding: 6px 12px; font-size: 0.8rem; }
+            
+            .customize-phones { flex-direction: column; align-items: center; gap: 24px; }
+            .phone-small { height: min(50vh, 380px); width: calc(min(50vh, 380px) * 0.45); }
+            .phone-small:nth-child(1), .phone-small:nth-child(2) { transform: none; }
+            
+            /* Mobile carousel */
+            .carousel-container { height: 55vh; max-height: 480px; }
+            .carousel-3d { width: 200px; height: 444px; }
+            .carousel-item { width: 200px; height: 444px; }
+            .carousel-item .carousel-phone { width: 200px; height: 444px; border-radius: 32px; }
+            .carousel-phone-front { border-radius: 32px; }
+            .carousel-phone-front .phone-screen { border-radius: 28px; }
+            .carousel-phone-back { border-radius: 32px; }
+            .phone-camera-bar { border-radius: 32px 32px 0 0; height: 65px; }
+            .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(300px); }
+            .carousel-item:nth-child(2) { transform: rotateY(60deg) translateZ(300px); }
+            .carousel-item:nth-child(3) { transform: rotateY(120deg) translateZ(300px); }
+            .carousel-item:nth-child(4) { transform: rotateY(180deg) translateZ(300px); }
+            .carousel-item:nth-child(5) { transform: rotateY(240deg) translateZ(300px); }
+            .carousel-item:nth-child(6) { transform: rotateY(300deg) translateZ(300px); }
+            .feature-info { 
+                min-width: 300px; 
+                padding: 16px 24px 20px;
+            }
+            .feature-info h3 { font-size: 1.1rem; }
+            .feature-info p { font-size: 0.85rem; }
+            
+            .theme-showcase { gap: 16px; }
+            .theme-phone { height: min(40vh, 320px); width: calc(min(40vh, 320px) * 0.45); }
+            .theme-phone:nth-child(1), .theme-phone:nth-child(2), .theme-phone:nth-child(3) { transform: none; }
+            .theme-label { bottom: -24px; font-size: 0.75rem; }
+            
+            .panel-content { opacity: 1; transform: none; filter: none; }
+            .hero-cta { padding: 16px 28px; font-size: 1.1rem; }
+            .play-badge-placeholder { padding: 14px 28px; }
+        }
+        
+        @media (max-width: 400px) {
+            .panel { padding: 40px 16px; }
+            .jp-title { font-size: 3rem; }
+            .section-title { font-size: 1.6rem; }
+            .phone-frame { height: min(55vh, 400px); width: calc(min(55vh, 400px) * 0.45); }
+            .phone-small, .phone-medium { height: min(45vh, 340px); width: calc(min(45vh, 340px) * 0.45); }
+            .theme-phone { height: min(35vh, 280px); width: calc(min(35vh, 280px) * 0.45); }
+            .carousel-container { height: 50vh; }
+            .carousel-3d { width: 170px; height: 378px; }
+            .carousel-item { width: 170px; height: 378px; }
+            .carousel-item .carousel-phone { width: 170px; height: 378px; }
+            .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(260px); }
+            .carousel-item:nth-child(2) { transform: rotateY(60deg) translateZ(260px); }
+            .carousel-item:nth-child(3) { transform: rotateY(120deg) translateZ(260px); }
+            .carousel-item:nth-child(4) { transform: rotateY(180deg) translateZ(260px); }
+            .carousel-item:nth-child(5) { transform: rotateY(240deg) translateZ(260px); }
+            .carousel-item:nth-child(6) { transform: rotateY(300deg) translateZ(260px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+    <div class="dust-container" id="dust-container"></div>
+
+    <nav class="nav-dots" id="nav-dots">
+        <button class="nav-dot active" data-panel="0"></button>
+        <button class="nav-dot" data-panel="1"></button>
+        <button class="nav-dot" data-panel="2"></button>
+        <button class="nav-dot" data-panel="3"></button>
+        <button class="nav-dot has-progress" data-panel="4"><div class="nav-dot-progress" id="nav-progress"></div></button>
+        <button class="nav-dot" data-panel="5"></button>
+        <button class="nav-dot" data-panel="6"></button>
+    </nav>
+    <div class="scroll-hint">SCROLL</div>
+
+    <div class="wrapper" id="wrapper">
+        <main class="horizontal-scroll" id="horizontal-scroll">
+
+            <!-- PANEL 1: HERO -->
+            <section class="panel in-view" id="panel-0">
+                <div class="panel-content panel-hero">
+                    <div class="hero-text">
+                        <h1 class="jp-title">物守り</h1>
+                        <p class="subtitle">Guardian of Things</p>
+                        <p class="tagline">Your <span>Collection OS</span></p>
+                        <a href="https://play.google.com/store" class="hero-cta" target="_blank" rel="noopener">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/></svg>
+                            Get it on Google Play
+                        </a>
+                    </div>
+                    <div class="hero-phone">
+                        <div class="phone-glow"></div>
+                        <div class="phone-frame">
+                            <div class="phone-screen">
+                                <img src="images/hero-home.png" alt="Monomori home screen" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/hero-home.png</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 2: STORY -->
+            <section class="panel" id="panel-1">
+                <div class="panel-content panel-story">
+                    <div class="story-text">
+                        <h2 class="section-title">One app for everything<br>you collect.</h2>
+                        <p class="section-subtitle">Built for how you actually organize.</p>
+                        <p class="story-description">Most collection apps force you into their structure. Monomori adapts to yours — whether you're cataloging five items or five thousand, across one category or dozens.</p>
+                    </div>
+                    <div class="story-phones">
+                        <div class="phone-medium">
+                            <div class="phone-screen">
+                                <img src="images/collection-grid.png" alt="Collection grid view" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/collection-grid.png</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-medium">
+                            <div class="phone-screen">
+                                <img src="images/item-detail.png" alt="Item detail view" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/item-detail.png</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 3: CATEGORIES -->
+            <section class="panel" id="panel-2">
+                <div class="panel-content panel-categories">
+                    <h2 class="section-title">46 categories. Or create your own.</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">From books to board games, vinyl to video games. If we missed something, build it yourself.</p>
+                    <div class="categories-grid">
+                        <span class="glass-card category-pill">Books</span>
+                        <span class="glass-card category-pill">Video Games</span>
+                        <span class="glass-card category-pill">Manga</span>
+                        <span class="glass-card category-pill">Music</span>
+                        <span class="glass-card category-pill">Movies & TV</span>
+                        <span class="glass-card category-pill">Figures</span>
+                        <span class="glass-card category-pill">Trading Cards</span>
+                        <span class="glass-card category-pill">LEGO</span>
+                        <span class="glass-card category-pill">Plants</span>
+                        <span class="glass-card category-pill">Board Games</span>
+                        <span class="glass-card category-pill">Jewelry</span>
+                        <span class="glass-card category-pill">Watches</span>
+                        <span class="glass-card category-pill">Sneakers</span>
+                        <span class="glass-card category-pill">Instruments</span>
+                        <span class="glass-card category-pill">Antiques</span>
+                        <span class="glass-card category-pill">Coins</span>
+                        <span class="glass-card category-pill">Fountain Pens</span>
+                        <span class="glass-card category-pill">Plushies</span>
+                        <span class="glass-card category-pill">Handbags</span>
+                        <span class="glass-card category-pill">Cameras</span>
+                        <span class="glass-card category-pill">Knives</span>
+                        <span class="glass-card category-pill">Rocks & Minerals</span>
+                        <span class="glass-card category-pill">Whiskey, Wine & Sake</span>
+                        <span class="glass-card category-pill">Tea & Coffee</span>
+                        <span class="glass-card category-pill">+ 22 more</span>
+                    </div>
+                    <p class="category-count">Plus <span>custom categories</span> with fields you define</p>
+                </div>
+            </section>
+
+            <!-- PANEL 4: CUSTOMIZE -->
+            <section class="panel" id="panel-3">
+                <div class="panel-content panel-customize">
+                    <div class="customize-text">
+                        <h2 class="section-title">Your collection,<br>your way.</h2>
+                        <p class="section-subtitle">Every field is optional. Show what matters, hide what doesn't.</p>
+                        <div class="customize-features">
+                            <div class="customize-feature">
+                                <div class="icon-placeholder">
+                                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <g stroke="#E6D9FF" stroke-width="1.8" stroke-linecap="round">
+                                        <circle cx="12" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18" r="2"/>
+                                        <line x1="14" y1="6" x2="20" y2="6"/><line x1="14" y1="12" x2="18" y2="12"/><line x1="14" y1="18" x2="20" y2="18"/>
+                                      </g>
+                                    </svg>
+                                </div>
+                                <div class="feature-content">
+                                    <h3>Field Visibility</h3>
+                                    <p>Toggle fields on or off. Only see what you actually track.</p>
+                                </div>
+                            </div>
+                            <div class="customize-feature">
+                                <div class="icon-placeholder">
+                                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <g stroke="#E6D9FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/>
+                                        <rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>
+                                      </g>
+                                    </svg>
+                                </div>
+                                <div class="feature-content">
+                                    <h3>Drag & Drop</h3>
+                                    <p>Reorder fields to match how you think about your items.</p>
+                                </div>
+                            </div>
+                            <div class="customize-feature">
+                                <div class="icon-placeholder">
+                                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <g stroke="#E6D9FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 5v14M5 12h14"/>
+                                      </g>
+                                    </svg>
+                                </div>
+                                <div class="feature-content">
+                                    <h3>Custom Fields</h3>
+                                    <p>Add your own fields to any category. Text, numbers, dates — whatever you need.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="customize-visual">
+                        <div class="customize-phones">
+                            <div class="phone-small">
+                                <div class="phone-screen">
+                                    <img src="images/customize-fields.png" alt="Field settings" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="screenshot-placeholder" style="display: none;">
+                                        <div class="label">SCREENSHOT</div>
+                                        <div class="filename">images/customize-fields.png</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="phone-small">
+                                <div class="phone-screen">
+                                    <img src="images/customize-form.png" alt="Add item form" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="screenshot-placeholder" style="display: none;">
+                                        <div class="label">SCREENSHOT</div>
+                                        <div class="filename">images/customize-form.png</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 5: FEATURES -->
+            <section class="panel panel-features-section" id="panel-4">
+                <div class="panel-content panel-features">
+                    <div class="features-header">
+                        <h2 class="section-title">Tools that save you time.</h2>
+                        <p class="section-subtitle">Scan, import, enrich, backup. Less busywork, more collecting.</p>
+                    </div>
+                    
+                    <div class="carousel-container">
+                        <div class="carousel-3d" id="features-carousel">
+                            <div class="carousel-item" data-title="Barcode Scanning" data-desc="Single or bulk scan. Point at a barcode and let Monomori look up the details.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen">
+                                            <img src="images/barcode-scan.png" alt="Barcode scanning" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="carousel-placeholder" style="display:none;">
+                                                <span>SCREENSHOT</span>
+                                                <code>barcode-scan.png</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item" data-title="Universal Import" data-desc="Bring any CSV. Columns auto-match to fields. Works with Goodreads, Discogs, or your own spreadsheets.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen">
+                                            <img src="images/import-csv.png" alt="CSV import" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="carousel-placeholder" style="display:none;">
+                                                <span>SCREENSHOT</span>
+                                                <code>import-csv.png</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item" data-title="Metadata Enrichment" data-desc="Missing details? Search online databases to fill in the gaps for select categories.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen">
+                                            <img src="images/enrichment.png" alt="Metadata enrichment" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="carousel-placeholder" style="display:none;">
+                                                <span>SCREENSHOT</span>
+                                                <code>enrichment.png</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item" data-title="Photo Management" data-desc="Unlimited photos per item. High-quality storage with date tracking and comments.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen">
+                                            <img src="images/photos.png" alt="Photo management" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="carousel-placeholder" style="display:none;">
+                                                <span>SCREENSHOT</span>
+                                                <code>photos.png</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item" data-title="Backup & Restore" data-desc="One-tap backup to a ZIP file. Items, images, settings — all of it. Restore anytime.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen">
+                                            <img src="images/backup-screen.png" alt="Backup and restore" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="carousel-placeholder" style="display:none;">
+                                                <span>SCREENSHOT</span>
+                                                <code>backup-screen.png</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item" data-title="Privacy First" data-desc="No accounts. No cloud. No analytics. Your data stays on your device, always.">
+                                <div class="carousel-phone">
+                                    <div class="carousel-phone-front">
+                                        <div class="phone-screen carousel-placeholder">
+                                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <g stroke="#E6D9FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/>
+                                                    <path d="M9 12l2 2 4-4"/>
+                                                </g>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="carousel-phone-back">
+                                        <div class="phone-camera-bar">
+                                            <div class="camera-lens large"></div>
+                                            <div class="camera-lens"></div>
+                                            <div class="camera-flash"></div>
+                                        </div>
+                                        <div class="phone-back-logo">G</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-info">
+                        <h3 id="feature-title">Barcode Scanning</h3>
+                        <p id="feature-desc">Single or bulk scan. Point at a barcode and let Monomori look up the details.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 6: DESIGN -->
+            <section class="panel" id="panel-5">
+                <div class="panel-content panel-design">
+                    <div class="theme-showcase">
+                        <div class="theme-phone">
+                            <div class="phone-screen">
+                                <img src="images/theme-sakura.png" alt="Sakura theme" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/theme-sakura.png</div>
+                                </div>
+                            </div>
+                            <span class="theme-label">Sakura</span>
+                        </div>
+                        <div class="theme-phone">
+                            <div class="phone-screen">
+                                <img src="images/theme-default.png" alt="Default theme" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/theme-default.png</div>
+                                </div>
+                            </div>
+                            <span class="theme-label">Monomori</span>
+                        </div>
+                        <div class="theme-phone">
+                            <div class="phone-screen">
+                                <img src="images/theme-ocean.png" alt="Ocean theme" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="screenshot-placeholder" style="display: none;">
+                                    <div class="label">SCREENSHOT</div>
+                                    <div class="filename">images/theme-ocean.png</div>
+                                </div>
+                            </div>
+                            <span class="theme-label">Ocean</span>
+                        </div>
+                    </div>
+                    <div class="design-text">
+                        <h2 class="section-title">Designed with care.</h2>
+                        <p class="section-subtitle">A collection app should feel as good as the things you're collecting.</p>
+                        <div class="design-features">
+                            <div class="design-feature"><div class="design-feature-dot"></div><p><strong>12 themes</strong> — find the one that fits your style</p></div>
+                            <div class="design-feature"><div class="design-feature-dot"></div><p><strong>Glassmorphic UI</strong> — soft gradients, frosted glass, subtle depth</p></div>
+                            <div class="design-feature"><div class="design-feature-dot"></div><p><strong>Three view modes</strong> — Cards, Tiles, or List</p></div>
+                            <div class="design-feature"><div class="design-feature-dot"></div><p><strong>Dynamic colors</strong> — matches your wallpaper on Android 12+</p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 7: CTA -->
+            <section class="panel" id="panel-6">
+                <div class="panel-content panel-cta">
+                    <h2 class="cta-title">Ready to get organized?</h2>
+                    <p class="cta-subtitle">Made by a collector who needed something better.</p>
+                    <a href="https://play.google.com/store" class="play-badge-placeholder" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/></svg>
+                        <div class="text"><div class="text-small">GET IT ON</div><div class="text-large">Google Play</div></div>
+                    </a>
+                    <p class="cta-footer">物守り — Guardian of Things</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Dust particles
+        (function() {
+            const container = document.getElementById('dust-container');
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                p.className = 'dust-particle';
+                const size = Math.random() * 4 + 2;
+                p.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+Math.random()*100+'%;--drift:'+(Math.random()-0.5)*80+'px;--max-opacity:'+(Math.random()*0.25+0.1)+';animation-delay:'+Math.random()*15+'s,'+Math.random()*15+'s;animation-duration:'+(Math.random()*25+20)+'s,'+(Math.random()*4+2)+'s;filter:blur('+(size>4?1.5:0)+'px);';
+                container.appendChild(p);
+            }
+        })();
+
+        const wrapper = document.getElementById('wrapper');
+        const panels = document.querySelectorAll('.panel');
+        const navDots = document.querySelectorAll('.nav-dot');
+        const navProgress = document.getElementById('nav-progress');
+        let panelWidth = window.innerWidth;
+        
+        // Update panelWidth on resize
+        window.addEventListener('resize', () => {
+            panelWidth = window.innerWidth;
+            // Snap to nearest panel after resize
+            const currentPanel = Math.round(wrapper.scrollLeft / panelWidth);
+            wrapper.scrollTo({ left: currentPanel * panelWidth, behavior: 'auto' });
+        });
+        
+        // Carousel state
+        const carousel = document.getElementById('features-carousel');
+        const carouselItems = carousel.querySelectorAll('.carousel-item');
+        const featureTitle = document.getElementById('feature-title');
+        const featureDesc = document.getElementById('feature-desc');
+        let currentCarouselIndex = 0;
+        const totalItems = 6;
+        
+        // Features panel is index 4
+        const featuresPanelIndex = 4;
+        let isInFeaturesPanel = false;
+        let featuresScrollAccumulator = 0;
+        const scrollThreshold = 120; // Amount of scroll needed to advance carousel
+        
+        function rotateCarousel(index) {
+            currentCarouselIndex = index;
+            const rotation = -60 * index; // 360/6 = 60 degrees per item
+            // Apply tilt + rotation
+            carousel.style.transform = `rotateX(-8deg) rotateY(${rotation}deg)`;
+            
+            // Update info text
+            const activeItem = carouselItems[index];
+            featureTitle.textContent = activeItem.dataset.title;
+            featureDesc.textContent = activeItem.dataset.desc;
+            
+            // Update nav dot progress bar (fill from 1/6 to 6/6)
+            const progress = ((index + 1) / totalItems) * 100;
+            navProgress.style.width = `${progress}%`;
+        }
+
+        function updateActivePanel() {
+            const scrollLeft = wrapper.scrollLeft;
+            const currentPanel = Math.round(scrollLeft / panelWidth);
+            
+            navDots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentPanel);
+            });
+            
+            // Check if we're in features panel
+            isInFeaturesPanel = currentPanel === featuresPanelIndex;
+            
+            panels.forEach((panel, i) => {
+                const panelLeft = i * panelWidth;
+                const distance = scrollLeft - panelLeft;
+                const absDistance = Math.abs(distance);
+                
+                panel.classList.remove('in-view', 'passed');
+                
+                if (absDistance < panelWidth * 0.5) {
+                    panel.classList.add('in-view');
+                } else if (distance > 0) {
+                    panel.classList.add('passed');
+                }
+            });
+        }
+
+        wrapper.addEventListener('scroll', updateActivePanel);
+        
+        // Handle wheel events
+        let isScrolling = false;
+        
+        document.addEventListener('wheel', (e) => {
+            if (window.innerWidth <= 768) return;
+            e.preventDefault();
+            
+            if (isScrolling) return;
+            
+            const currentPanel = Math.round(wrapper.scrollLeft / panelWidth);
+            const delta = e.deltaY;
+            
+            // If we're in the features panel
+            if (currentPanel === featuresPanelIndex) {
+                featuresScrollAccumulator += delta;
+                
+                // Check if we've scrolled enough to advance
+                if (Math.abs(featuresScrollAccumulator) >= scrollThreshold) {
+                    const direction = featuresScrollAccumulator > 0 ? 1 : -1;
+                    featuresScrollAccumulator = 0;
+                    
+                    const nextIndex = currentCarouselIndex + direction;
+                    
+                    // If still within carousel range, rotate
+                    if (nextIndex >= 0 && nextIndex < totalItems) {
+                        rotateCarousel(nextIndex);
+                        return;
+                    }
+                    
+                    // If at end, move to next/prev panel
+                    if (nextIndex >= totalItems) {
+                        // Move to next panel
+                        isScrolling = true;
+                        wrapper.scrollTo({ 
+                            left: (featuresPanelIndex + 1) * panelWidth, 
+                            behavior: 'smooth' 
+                        });
+                        setTimeout(() => { isScrolling = false; }, 600);
+                        return;
+                    }
+                    
+                    if (nextIndex < 0) {
+                        // Move to previous panel
+                        isScrolling = true;
+                        wrapper.scrollTo({ 
+                            left: (featuresPanelIndex - 1) * panelWidth, 
+                            behavior: 'smooth' 
+                        });
+                        // Reset carousel to end for when we come back
+                        setTimeout(() => { 
+                            isScrolling = false;
+                            currentCarouselIndex = totalItems - 1;
+                            rotateCarousel(currentCarouselIndex);
+                        }, 600);
+                        return;
+                    }
+                }
+                return;
+            }
+            
+            // For other panels, just scroll
+            isScrolling = true;
+            const nextPanel = delta > 0 
+                ? Math.min(currentPanel + 1, panels.length - 1)
+                : Math.max(currentPanel - 1, 0);
+            
+            wrapper.scrollTo({ 
+                left: nextPanel * panelWidth, 
+                behavior: 'smooth' 
+            });
+            
+            // Reset carousel when entering features panel
+            if (nextPanel === featuresPanelIndex) {
+                if (delta > 0) {
+                    currentCarouselIndex = 0;
+                    rotateCarousel(0);
+                } else {
+                    currentCarouselIndex = totalItems - 1;
+                    rotateCarousel(totalItems - 1);
+                }
+                featuresScrollAccumulator = 0;
+            }
+            
+            setTimeout(() => { isScrolling = false; }, 600);
+        }, { passive: false });
+        
+        navDots.forEach((dot, i) => {
+            dot.addEventListener('click', () => {
+                wrapper.scrollTo({ left: i * panelWidth, behavior: 'smooth' });
+                if (i === featuresPanelIndex) {
+                    currentCarouselIndex = 0;
+                    rotateCarousel(0);
+                    featuresScrollAccumulator = 0;
+                }
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (window.innerWidth <= 768) return;
+            if (isScrolling) return;
+            
+            const currentPanel = Math.round(wrapper.scrollLeft / panelWidth);
+            
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                
+                // Handle features panel
+                if (currentPanel === featuresPanelIndex && currentCarouselIndex < totalItems - 1) {
+                    rotateCarousel(currentCarouselIndex + 1);
+                    return;
+                }
+                
+                isScrolling = true;
+                const nextPanel = Math.min(currentPanel + 1, panels.length - 1);
+                wrapper.scrollTo({ left: nextPanel * panelWidth, behavior: 'smooth' });
+                
+                if (nextPanel === featuresPanelIndex) {
+                    currentCarouselIndex = 0;
+                    rotateCarousel(0);
+                }
+                
+                setTimeout(() => { isScrolling = false; }, 600);
+                
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                
+                // Handle features panel
+                if (currentPanel === featuresPanelIndex && currentCarouselIndex > 0) {
+                    rotateCarousel(currentCarouselIndex - 1);
+                    return;
+                }
+                
+                isScrolling = true;
+                const prevPanel = Math.max(currentPanel - 1, 0);
+                wrapper.scrollTo({ left: prevPanel * panelWidth, behavior: 'smooth' });
+                
+                if (prevPanel === featuresPanelIndex) {
+                    currentCarouselIndex = totalItems - 1;
+                    rotateCarousel(totalItems - 1);
+                }
+                
+                setTimeout(() => { isScrolling = false; }, 600);
+            }
+        });
+
+        updateActivePanel();
+        // Initialize carousel with tilt
+        rotateCarousel(0);
+    </script>
+</body>
+</html>
