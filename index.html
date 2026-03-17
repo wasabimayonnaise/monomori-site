@@ -41,7 +41,8 @@
         html { overflow: hidden; height: 100%; }
         body { 
             font-family: 'Outfit', sans-serif; 
-            background: var(--gradient-start); 
+            background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            background-attachment: fixed;
             color: var(--text-primary);
             height: 100%;
             overflow: hidden;
@@ -73,7 +74,7 @@
             align-items: center; 
             justify-content: center;
             padding: 40px 60px;
-            background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            background: transparent;
             position: relative;
             overflow: hidden;
             scroll-snap-align: start;
@@ -607,8 +608,14 @@
         }
         
         @media (max-width: 768px) {
-            /* Base mobile layout - smooth natural scrolling, one continuous page */
-            html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
+            /* Base mobile layout - smooth natural scrolling, one continuous background */
+            html, body { 
+                overflow-x: hidden; 
+                overflow-y: auto; 
+                height: auto;
+                background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+                background-attachment: fixed;
+            }
             .wrapper { height: auto; overflow-x: hidden; overflow-y: auto; }
             .horizontal-scroll { flex-direction: column; width: 100%; height: auto; }
             .panel { 
@@ -616,6 +623,7 @@
                 min-height: auto;
                 height: auto; 
                 padding: 60px 24px;
+                background: transparent;
             }
             .nav-dots, .scroll-hint { display: none; }
             .panel-content { opacity: 1; transform: none; filter: none; max-width: 100%; }
@@ -624,7 +632,7 @@
             .panel-hero { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 40px; 
+                gap: 48px; 
                 text-align: center;
                 padding-top: 20px;
             }
@@ -635,12 +643,12 @@
             .subtitle { font-size: 0.95rem; margin-top: 0.6rem; }
             .tagline { font-size: 1.3rem; margin-top: 1.2rem; }
             .phone-frame { 
-                height: min(58vh, 440px);
-                width: calc(min(58vh, 440px) * 0.45);
-                border-radius: 32px; 
+                height: min(50vh, 380px);
+                width: calc(min(50vh, 380px) * 0.45);
+                border-radius: 28px; 
                 margin: 0 auto;
             }
-            .phone-screen { border-radius: 28px; }
+            .phone-screen { border-radius: 24px; }
             .phone-glow { width: 300px; height: 300px; }
             .hero-cta { 
                 padding: 16px 28px; 
@@ -652,7 +660,7 @@
             .panel-story .panel-content { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 40px; 
+                gap: 56px; 
                 text-align: center; 
             }
             .story-text { max-width: 100%; }
@@ -667,8 +675,8 @@
                 align-items: center;
             }
             .phone-medium { 
-                height: min(42vh, 320px);
-                width: calc(min(42vh, 320px) * 0.45);
+                height: min(50vh, 380px);
+                width: calc(min(50vh, 380px) * 0.45);
                 border-radius: 28px;
                 padding: 4px;
             }
@@ -688,7 +696,7 @@
             .panel-customize .panel-content { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 40px; 
+                gap: 56px; 
                 text-align: center; 
             }
             .customize-text { order: 1; }
@@ -709,8 +717,8 @@
                 align-items: center;
             }
             .phone-small { 
-                height: min(42vh, 320px);
-                width: calc(min(42vh, 320px) * 0.45);
+                height: min(50vh, 380px);
+                width: calc(min(50vh, 380px) * 0.45);
                 border-radius: 28px;
                 padding: 4px;
             }
@@ -845,18 +853,18 @@
             .panel-design .panel-content { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 40px; 
+                gap: 56px; 
                 text-align: center; 
             }
             .theme-showcase { 
                 order: 1;
                 display: flex; 
                 flex-direction: row;
-                gap: 10px; 
+                gap: 12px; 
                 justify-content: center;
-                align-items: center;
+                align-items: flex-end;
                 padding: 0;
-                margin-bottom: 24px;
+                margin-bottom: 0;
             }
             .design-text { order: 2; }
             .design-features { 
@@ -866,16 +874,16 @@
             }
             .design-feature p { font-size: 0.9rem; }
             .theme-phone { 
-                height: min(34vh, 260px);
-                width: calc(min(34vh, 260px) * 0.45);
-                border-radius: 22px;
-                padding: 3px;
+                height: min(42vh, 320px);
+                width: calc(min(42vh, 320px) * 0.45);
+                border-radius: 24px;
+                padding: 4px;
             }
             .theme-phone:nth-child(1) { transform: rotate(-4deg); }
             .theme-phone:nth-child(2) { transform: scale(1.08); z-index: 2; }
             .theme-phone:nth-child(3) { transform: rotate(4deg); }
-            .theme-phone .phone-screen { border-radius: 19px; }
-            .theme-label { bottom: -26px; font-size: 0.7rem; }
+            .theme-phone .phone-screen { border-radius: 20px; }
+            .theme-label { bottom: -28px; font-size: 0.7rem; }
             
             /* CTA section */
             .panel-cta { padding-top: 80px; padding-bottom: 100px; }
@@ -895,25 +903,19 @@
             .en-title { font-size: 1rem; }
             .jp-title { font-size: 2.8rem; }
             .section-title { font-size: 1.5rem; }
-            .phone-frame { 
-                height: min(52vh, 400px);
-                width: calc(min(52vh, 400px) * 0.45);
-            }
+            .phone-frame,
             .phone-medium,
-            .phone-small { 
-                height: min(36vh, 280px);
-                width: calc(min(36vh, 280px) * 0.45);
-            }
+            .phone-small,
             .mobile-feature-phone { 
                 height: min(45vh, 340px);
                 width: calc(min(45vh, 340px) * 0.45);
             }
             .theme-phone {
-                height: min(28vh, 220px);
-                width: calc(min(28vh, 220px) * 0.45);
+                height: min(36vh, 280px);
+                width: calc(min(36vh, 280px) * 0.45);
             }
             .story-phones, .customize-phones { gap: 10px; }
-            .theme-showcase { gap: 6px; }
+            .theme-showcase { gap: 8px; }
         }
     </style>
 </head>
