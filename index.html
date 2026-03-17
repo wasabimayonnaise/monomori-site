@@ -609,14 +609,18 @@
         @media (max-width: 768px) {
             /* Base mobile layout - vertical scrolling */
             html, body { overflow-x: hidden; overflow-y: auto; height: auto; }
-            .wrapper { height: auto; overflow-x: hidden; overflow-y: auto; scroll-snap-type: y proximity; }
+            .wrapper { height: auto; overflow-x: hidden; overflow-y: auto; scroll-snap-type: y mandatory; }
             .horizontal-scroll { flex-direction: column; width: 100%; height: auto; }
             .panel { 
                 width: 100%; 
-                min-height: auto;
+                min-height: 100vh;
+                min-height: 100dvh;
                 height: auto; 
                 padding: 60px 24px; 
-                scroll-snap-align: start; 
+                scroll-snap-align: start;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             .nav-dots, .scroll-hint { display: none; }
             .panel-content { opacity: 1; transform: none; filter: none; max-width: 100%; }
