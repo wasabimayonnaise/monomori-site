@@ -609,21 +609,38 @@
         
         @media (max-width: 768px) {
             /* Base mobile layout - smooth natural scrolling, one continuous background */
-            html, body { 
+            html { 
                 overflow-x: hidden; 
                 overflow-y: auto; 
                 height: auto;
-                background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-                background-attachment: fixed;
             }
-            .wrapper { height: auto; overflow-x: hidden; overflow-y: auto; }
+            body { 
+                overflow-x: hidden; 
+                overflow-y: auto; 
+                height: auto;
+                background: var(--gradient-start);
+                min-height: 100vh;
+            }
+            /* Fixed gradient overlay that stays in place */
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+                z-index: -1;
+                pointer-events: none;
+            }
+            .wrapper { height: auto; overflow-x: hidden; overflow-y: visible; }
             .horizontal-scroll { flex-direction: column; width: 100%; height: auto; }
             .panel { 
                 width: 100%; 
                 min-height: auto;
                 height: auto; 
                 padding: 60px 24px;
-                background: transparent;
+                background: transparent !important;
             }
             .nav-dots, .scroll-hint { display: none; }
             .panel-content { opacity: 1; transform: none; filter: none; max-width: 100%; }
@@ -696,7 +713,7 @@
             .panel-customize .panel-content { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 56px; 
+                gap: 48px; 
                 text-align: center; 
             }
             .customize-text { order: 1; }
@@ -722,8 +739,8 @@
                 border-radius: 28px;
                 padding: 4px;
             }
-            .phone-small:nth-child(1) { transform: rotate(-5deg) translateY(8px); z-index: 1; }
-            .phone-small:nth-child(2) { transform: rotate(4deg) translateY(-8px); z-index: 2; }
+            .phone-small:nth-child(1) { transform: rotate(-5deg); z-index: 1; }
+            .phone-small:nth-child(2) { transform: rotate(4deg); z-index: 2; }
             .phone-small .phone-screen { border-radius: 24px; }
             
             /* Features section - Hide 3D, show mobile carousel */
@@ -853,7 +870,7 @@
             .panel-design .panel-content { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 56px; 
+                gap: 48px; 
                 text-align: center; 
             }
             .theme-showcase { 
@@ -864,7 +881,7 @@
                 justify-content: center;
                 align-items: flex-end;
                 padding: 0;
-                margin-bottom: 0;
+                padding-bottom: 40px; /* Space for labels */
             }
             .design-text { order: 2; }
             .design-features { 
@@ -878,12 +895,13 @@
                 width: calc(min(42vh, 320px) * 0.45);
                 border-radius: 24px;
                 padding: 4px;
+                position: relative;
             }
             .theme-phone:nth-child(1) { transform: rotate(-4deg); }
             .theme-phone:nth-child(2) { transform: scale(1.08); z-index: 2; }
             .theme-phone:nth-child(3) { transform: rotate(4deg); }
             .theme-phone .phone-screen { border-radius: 20px; }
-            .theme-label { bottom: -28px; font-size: 0.7rem; }
+            .theme-label { bottom: -32px; font-size: 0.7rem; }
             
             /* CTA section */
             .panel-cta { padding-top: 80px; padding-bottom: 100px; }
