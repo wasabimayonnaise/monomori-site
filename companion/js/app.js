@@ -841,7 +841,8 @@ function renderQRView() {
 
   view.append(
     el('h2', {}, `${catIcon} Scan to Add`),
-    el('p', { className: 'subtitle' }, 'Open Monomori on your Android device and scan this QR code to add the item with your details pre-filled.')
+    el('p', { className: 'subtitle' }, 'Scan this QR code with your phone\'s camera app — it will open Monomori with your details pre-filled.'),
+    el('div', { className: 'qr-warning' }, '📷 Use your phone\'s camera app to scan, not the barcode scanner inside Monomori.')
   );
 
   if (deepLink.length > 900) {
